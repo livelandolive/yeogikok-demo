@@ -38,7 +38,7 @@
 <body>
 <main>
   <header>
-    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.6.2 · 2026-11-12</small></h1>
+    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.6.3 · 2026-11-12</small></h1>
     <p>병원 예약 화면 위에 “지금 이걸 누르세요”를 한 단계씩 알려주는 버튼이에요. 병원이 코드 한 줄을 넣으면 뜨는 것을, 병원이 넣기 전에 우리끼리 미리 써 보는 페이지예요.</p>
   </header>
 
@@ -105,14 +105,14 @@
     <p style="margin: 0">병원 홈페이지의 공통 틀(모든 화면에 들어가는 부분)에서 <code>&lt;/body&gt;</code> 바로 앞에 넣어요.</p>
     <pre id="line"></pre>
     <p style="margin: 0"><button class="copy" type="button" data-copy="line">코드 복사</button><span class="ok" hidden>복사했어요</span></p>
-    <p class="muted">파일 하나(134KB)만 불러와요. <code>integrity</code> 값은 “우리가 확인한 그 파일이 맞는지”를 브라우저가 검사하게 해요. 빼려면 이 한 줄만 지우면 돼요.</p>
+    <p class="muted">파일 하나(135KB)만 불러와요. <code>integrity</code> 값은 “우리가 확인한 그 파일이 맞는지”를 브라우저가 검사하게 해요. 빼려면 이 한 줄만 지우면 돼요.</p>
   </section>
 </main>
 <script>
   // this page works wherever it is put: it reads its own address and builds the links from it
   var base = new URL('.', location.href).href, src = base + 'yeogikok.js';
   var bm = "javascript:(function(){if(window.__ykLoaded){window.dispatchEvent(new Event('yk-open'));return;}var s=document.createElement('script');s.src='" + src + "?t='+Date.now();s.setAttribute('data-open','1');document.documentElement.appendChild(s);})()";
-  var line = '<script src="' + src + '" integrity="sha384-Rp8hB0A/4fHZi+XCDOJhH3OFuyoTc+7lIxZXseKil+eiWCEZvYdDZK1Ns8CSpRWM" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
+  var line = '<script src="' + src + '" integrity="sha384-xgaB9gdJXOQxOYmiPiXXB4D5k0LYE9o9MWN1OE6PVeyuiHEnNvjdlkSQPUVAvxwt" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
   document.getElementById('bm').href = bm;
   document.getElementById('bm').addEventListener('click', function (e) { e.preventDefault(); });
   document.getElementById('line').textContent = line;

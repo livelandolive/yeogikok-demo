@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.2 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.3 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -151,7 +151,7 @@
           // 2) 다녀감: 온라인 예약
           { st: '다녀감: 온라인 예약이 보임', when: (h) => h.shown('a.btn_appointment.appointment_e'),
             find: [{ sel: 'a.btn_appointment.appointment_e', text: '온라인 예약' }],
-            msg: '‘온라인 예약’을 누르세요.', sub: '‘로그인 후 이용이 가능합니다’라는 작은 창이 뜨면 ‘확인’을 누르세요. 다음 화면에서 아이디로 로그인해요. 아이디가 없어도 방법을 알려드려요.' },
+            msg: '‘온라인 예약’을 누르세요.', sub: '‘로그인 후 이용이 가능합니다’라는 작은 창이 뜨면 ‘확인’(휴대폰은 ‘닫기’)을 누르세요. 다음 화면에서 아이디로 로그인해요. 아이디가 없어도 방법을 알려드려요.' },
           { st: '다녀감: 접혀 있음', when: () => true,
             find: [{ sel: 'div.box.box02 > a.title', text: '온라인 진료예약' }],
             msg: HOVER ? '마우스를 ‘온라인 진료예약’ 위에 올려 두세요.' : '‘온라인 진료예약’을 누르세요.',
@@ -515,6 +515,8 @@ window.__YK_RULES = {
   };
   // 이 주소에 맞는 안내표를 골라요. data-hospital에 적힌 병원이 이 주소와 맞지 않으면 그 표는 쓰지 않아요.
   var pick = (TABLES[want] && HOSTS[want].test(host)) ? want : Object.keys(HOSTS).filter(function (k) { return HOSTS[k].test(host); })[0];
+  // 북마크로 켠 경우(병원이 아직 코드를 넣지 않은 시안): 화면이 통째로 바뀌면 꺼진다는 것을 미리 알려줘요
+  if (open) window.__YK_DEMO = true;
   function start() {
     if (window.__ykLoaded) return;
     if (pick) TABLES[pick]();
@@ -1382,7 +1384,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.2');
+  host.setAttribute('data-yk-version', '0.6.3');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
@@ -1614,14 +1616,17 @@ window.__YK_RULES = {
     // an earlier answer decides what we say here: show it, with a button to change it (so the question never just disappears)
     const ah = c.step && c.step.ask ? null : answerHere();
     const was = ah ? `<p class="was">‘${ah.label}’ 기준으로 안내 중이에요.<button type="button" class="lnk" data-g="reask">답 바꾸기</button></p>` : '';
+    // 시안(북마크로 켠 경우)에서만: 로그인하면 병원 화면이 통째로 새로 열려서 이 도움 버튼이 꺼져요. 미리 알려줘요.
+    // (병원이 코드 한 줄을 넣으면 모든 화면에서 저절로 뜨니 이 안내는 나오지 않아요)
+    const demo = window.__YK_DEMO && /login/i.test(location.pathname) ? '<p class="was">시안 안내: 로그인하면 화면이 새로 열려서 도움 버튼이 꺼져요. 그때 북마크의 ‘여기콕’을 한 번 더 눌러 주세요.</p>' : '';
     if (c.step && c.el && c.step.ask) {
       strip.className = 'strip';
       strip.innerHTML = `<p class="msg">${c.step.msg}</p>
         <div class="row">${c.step.ask.map((a, i) => `<button type="button" class="${i === 0 ? 'say' : ''}" data-g="answer" data-flag="${a.flag}" data-was="${a.was || a.label}">${a.label}</button>`).join('')}</div>
-        <div class="bar"><button type="button" class="txt" data-g="exit">📞 전화로</button>${tools}</div>`;
+        ${demo}<div class="bar"><button type="button" class="txt" data-g="exit">📞 전화로</button>${tools}</div>`;
     } else if (c.step && (c.el || c.force)) {
       strip.className = 'strip';
-      strip.innerHTML = `<p class="msg">${c.step.msg}</p>${more ? `<p class="sub">${c.step.sub}</p>` : ''}${was}
+      strip.innerHTML = `<p class="msg">${c.step.msg}</p>${more ? `<p class="sub">${c.step.sub}</p>` : ''}${was}${demo}
         <div class="bar">${c.step.sub ? `<button type="button" class="txt" data-g="more">${more ? '접기' : '자세히'}</button>` : ''}
         <button type="button" class="txt" data-g="exit">📞 전화로</button>${tools}</div>`;
     } else {
