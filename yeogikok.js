@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.3 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.4 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -7,7 +7,7 @@
   var want = (me && me.getAttribute('data-hospital')) || '';
   var open = !!(me && me.getAttribute('data-open') === '1');
   var host = location.hostname;
-  var HOSTS = { anam: /(^|\.)anam\.kumc\.or\.kr$/, snuh: /(^|\.)snuh\.org$/ };
+  var HOSTS = { anam: /(^|\.)anam\.kumc\.or\.kr$/, snuh: /(^|\.)snuh\.org$/, bumin: /(^|\.)bumin\.co\.kr$/ };
   var TABLES = {
     anam: function () {
 /*
@@ -510,6 +510,67 @@ window.__YK_RULES = {
     msg: '예약하시려면 ‘진료예약’을 누르세요.', sub: '이 화면은 아직 자세한 안내가 준비 중이에요.'
   }
 };
+
+    },
+    bumin: function () {
+/*
+ * 서울부민병원 안내표 (bumin.co.kr) — v1, 2026-11-12
+ * 두 번째 병원으로 "안내표 하나에 시간이 얼마나 드는지" 재 보려고 만들었어요 (로그인 없는 화면만).
+ *
+ * 이 병원의 온라인 예약은 두 갈래예요.
+ *   1) 편한예약     → 다른 회사(exona)의 챗봇 창. 그 안은 안내하지 못해요.
+ *   2) 간편상담예약 → 이름·휴대폰·전화 받을 시간만 남기면 상담원이 전화해서 예약을 잡아줘요. 어르신께는 이쪽을 안내해요.
+ * 첫 화면(공지 창 닫기 → ‘온라인진료예약’)은 공통 예약 지도(stages.js)가 맡아요.
+ */
+(function () {
+  const $$ = (sel) => { try { return [...document.querySelectorAll(sel)]; } catch (e) { return []; } };
+  const txt = (e) => (e && (e.textContent || '') || '').replace(/\s+/g, ' ').trim();
+  const onScreen = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const timePicked = () => $$('input[name="callTimeTp"]').some((r) => r.checked);
+
+  window.__YK_RULES = {
+    hospital: '서울부민병원',
+    analyzedOn: '2026-11-12',
+    phone: '1577-7582',
+    hours: '운영 시간은 병원 홈페이지에서 확인하세요',
+    pages: [
+      {
+        name: '온라인 진료예약',
+        match: (p) => p.includes('/reserveM/step0.do'),
+        steps: [
+          { st: '간편상담예약 버튼', when: () => $$('a[href*="resvOfflineList1.do"]').some(onScreen),
+            find: [{ sel: 'a[href*="resvOfflineList1.do"]' }],
+            msg: '아래 ‘간편상담예약’을 누르세요.', sub: '이름과 휴대폰 번호만 남기면 상담원이 전화해서 예약을 잡아드려요. 회원가입이 필요 없어요.', fill: false },
+          { st: '간편상담예약 탭', when: () => true,
+            find: [{ fn: () => $$('a[href*="fn_MoveMedicalInfoTab(\'2\')"]').find(onScreen) }, { fn: () => $$('a, button').filter((e) => txt(e) === '간편상담예약' && onScreen(e))[0] }],
+            msg: '위쪽 ‘간편상담예약’을 누르세요.', sub: '‘편한예약’은 채팅으로 묻고 답하는 창이 따로 열려요. 전화로 도움받는 ‘간편상담예약’이 더 쉬워요.', fill: false }
+        ]
+      },
+      {
+        name: '간편상담예약',
+        match: (p) => p.includes('/reserve/resvOfflineList1.do'),
+        steps: [
+          { st: '이름', when: (h) => !h.filled('resvUserNm'),
+            find: [{ sel: '#resvUserNm' }], msg: '‘이름’ 칸에 이름을 넣으세요.', sub: '진료받을 분의 이름이에요.' },
+          { st: '번호 가운데', when: (h) => !h.filled('resvMobileNo2'),
+            find: [{ sel: '#resvMobileNo2' }], msg: '휴대폰 번호 가운데 4자리를 넣으세요.', sub: '앞자리는 010으로 골라져 있어요. 예: 010-1234-5678이면 1234' },
+          { st: '번호 끝', when: (h) => !h.filled('resvMobileNo3'),
+            find: [{ sel: '#resvMobileNo3' }], msg: '휴대폰 번호 끝 4자리를 넣으세요.', sub: '예: 010-1234-5678이면 5678' },
+          { st: '전화 받을 시간', when: () => !timePicked(),
+            find: [{ fn: () => { const r = document.getElementById('callTimeTp4'); return r && (r.closest('ul, dl, .time, td, div') || r.parentElement); } }],
+            msg: '전화 받기 편한 시간을 하나 누르세요.', sub: '상담원이 그 시간에 전화해요. 아무 때나 괜찮으면 가장 이른 시간을 고르세요.', fill: false },
+          { st: '개인정보 동의', when: (h) => !h.checked('accessPerYn'),
+            find: [{ sel: 'label[for="accessPerYn"]' }],
+            msg: '‘개인정보의 수집·이용에 동의합니다’를 누르세요.', sub: '병원이 전화를 드리려고 이름과 번호를 받아요. 꼭 동의해야 신청돼요.', fill: false },
+          { st: '신청', when: () => true,
+            find: [{ sel: 'a.btn_appli', text: '간편상담예약신청' }, { sel: 'a, button', text: '간편상담예약신청' }],
+            msg: '‘간편상담예약신청’을 누르세요.', sub: '상담원이 전화해서 진료과·선생님·날짜를 같이 정해드려요. 모르는 번호여도 받아 주세요.', fill: false }
+        ]
+      }
+    ],
+    fallback: { find: [], msg: '', sub: '' }
+  };
+})();
 
     }
   };
@@ -1384,7 +1445,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.3');
+  host.setAttribute('data-yk-version', '0.6.4');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
