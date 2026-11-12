@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.1 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.2 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -106,8 +106,12 @@
   const pickIsBar = () => {
     const box = openBox(2) || document.querySelector('.reservation_stepouter .gui_wrap');
     const l = box && [...box.querySelectorAll('.agree_line label, label[for^="Select_Doc"]')].find(onScreen);
-    if (l) return l.getBoundingClientRect().width >= 100;
-    return !HOVER; // 못 찾으면 기기로 짐작해요
+    // 누르는 부분은 글자표(label) 안의 체크 칸(input)이에요. 휴대폰에서는 그 칸이 넓은 막대로 그려져요: 둘 중 넓은 쪽을 재요.
+    const i = l && (l.querySelector('input') || (l.htmlFor && document.getElementById(l.htmlFor)));
+    const w = Math.max(l ? l.getBoundingClientRect().width : 0, i ? i.getBoundingClientRect().width : 0);
+    if (w >= 100) return true;
+    // 병원 화면이 휴대폰 모양으로 바뀌는 폭(750px 이하)이면 ‘선택’ 막대예요 (2026-11-12 아이폰 영상)
+    return (window.visualViewport ? visualViewport.width * visualViewport.scale : innerWidth) <= 750;
   };
   const pickMsg = () => pickIsBar() ? '진료받을 선생님 칸의 ‘선택’을 누르세요.' : '선생님 이름 왼쪽의 동그라미를 누르세요.';
   const pickSub = () => (pickIsBar() ? '선생님마다 아래에 ‘선택’ 막대가 있어요. ' : '이름이나 사진을 눌러서는 골라지지 않아요. ') + '맨 위 선생님이 가장 빨리 볼 수 있어요(‘빠른진료’ 날짜). ‘전문진료분야’에 아픈 곳이 적힌 분이면 더 좋아요.';
@@ -1378,7 +1382,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.1');
+  host.setAttribute('data-yk-version', '0.6.2');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
@@ -1638,7 +1642,7 @@ window.__YK_RULES = {
       ${R.phone ? `<div class="call">${R.hospital} 예약센터<b>${R.phone}</b>${R.hours}</div>` : `<div class="call">${R.hospital}<b style="font-size:20px">예약 전화번호</b>홈페이지 맨 위나 맨 아래에 적힌 ‘예약’ 또는 ‘대표전화’ 번호로 전화하세요</div>`}
       <p class="sub">상담원에게 “인터넷 예약이 어려워서 전화했어요”라고 말씀하시면 돼요.</p>
       <div class="row"><button type="button" class="say" data-g="speak">🔊 소리로 듣기</button><button type="button" data-g="back">돌아가기</button></div>
-      <p class="tag">여기콕 도움 (시연) · 안내표 ${R.analyzedOn} 기준</p>`;
+      <p class="tag">여기콕 도움 (시연) ${host.getAttribute('data-yk-version')} · 안내표 ${R.analyzedOn} 기준</p>`;
     draw(true);
   }
   function speak() {
