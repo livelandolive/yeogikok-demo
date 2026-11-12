@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.5 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.6 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -93,6 +93,10 @@
   const idChecked = () => { const id = document.getElementById('Signin_id01'); return !!id && !!id.value.trim() && checkedId === id.value.trim(); };
   const byAria = (a) => $$('input[aria-label="' + a + '"]').find((i) => !i.readOnly && i.offsetParent !== null);
   const emptyAria = (a) => { const i = byAria(a); return !!i && (!String(i.value || '').trim() || (i === document.activeElement && !(i.maxLength > 0 && i.value.length >= i.maxLength))); };
+  // 병원 화면이 휴대폰 모양으로 바뀌는 폭(750px 이하)인지: 휴대폰에서는 옆으로 늘어선 것들이 위아래로 쌓여요
+  const narrow = () => (window.visualViewport ? visualViewport.width * visualViewport.scale : innerWidth) <= 750;
+  // 이메일 @ 뒷부분: 목록(#email_sel)에서 ‘직접입력’이 아닌 것을 골랐으면 고른 거예요
+  const emailPicked = () => { const s = document.getElementById('email_sel'); return !!s && s.selectedIndex > 0 && !/직접/.test((s.options[s.selectedIndex] || {}).textContent || ''); };
   const pwMismatch = () => $$('p.color_main.hiddentxt').some((p) => /일치하지 않습니다/.test(txt(p)) && p.offsetParent !== null && getComputedStyle(p).display !== 'none');
 
   // 자동 로그아웃 안내 창: 로그인하고 오래 가만히 있으면 어느 화면에서나 떠요 (어르신은 천천히 하시니 자주 만나요)
@@ -239,7 +243,7 @@
           ...keepSteps,
           { st: '일반 회원가입', when: () => true,
             find: [{ sel: 'a[href="/kr/regist/agree.do"]', text: '회원가입' }],
-            msg: '맨 왼쪽 ‘일반 회원가입’의 ‘회원가입’을 누르세요.', sub: '만 14세 이상이면 이걸 눌러요. 휴대폰 본인인증이 필요해요.', fill: false }
+            get msg() { return narrow() ? '맨 위 ‘일반 회원가입’의 ‘회원가입’을 누르세요.' : '맨 왼쪽 ‘일반 회원가입’의 ‘회원가입’을 누르세요.'; }, sub: '만 14세 이상이면 이걸 눌러요. 휴대폰 본인인증이 필요해요.', fill: false }
         ]
       },
       {
@@ -295,7 +299,7 @@
             find: [{ sel: 'label[for="Signin_sel_SMS01"]' }], msg: '‘SMS 수신’을 누르세요.', sub: '예약 날짜를 문자로 알려줘요. 꼭 하나를 골라야 다음으로 가요.' },
           { st: '이메일 앞', when: () => emptyAria('이메일 아이디'), find: [{ fn: () => byAria('이메일 아이디') }],
             msg: '‘이메일’ 앞 칸에 이메일 @ 앞부분을 넣으세요.', sub: '예: hong1950@naver.com이면 hong1950. 이메일이 없으시면 ‘전화로’ 예약하시는 게 빨라요.' },
-          { st: '이메일 뒤', when: () => emptyAria('도메인 주소'), find: [{ sel: '#email_sel' }, { fn: () => byAria('도메인 주소') }],
+          { st: '이메일 뒤', when: () => emptyAria('도메인 주소') && !emailPicked(), find: [{ sel: '#email_sel' }, { fn: () => byAria('도메인 주소') }],
             msg: '옆 목록에서 ‘naver.com’처럼 @ 뒷부분을 고르세요.', sub: '목록에 없으면 ‘직접입력’을 그대로 두고 @ 오른쪽 칸에 직접 써요.' },
           { st: '회원가입', when: () => true,
             find: [{ sel: '.btn_wrap a, .btn_wrap button', text: '회원가입' }],
@@ -1483,7 +1487,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.5');
+  host.setAttribute('data-yk-version', '0.6.6');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `

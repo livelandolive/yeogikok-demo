@@ -38,7 +38,7 @@
 <body>
 <main>
   <header>
-    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.6.5 · 2026-11-12</small></h1>
+    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.6.6 · 2026-11-12</small></h1>
     <p>병원 예약 화면 위에 “지금 이걸 누르세요”를 한 단계씩 알려주는 버튼이에요. 병원이 코드 한 줄을 넣으면 뜨는 것을, 병원이 넣기 전에 우리끼리 미리 써 보는 페이지예요.</p>
   </header>
 
@@ -125,7 +125,7 @@
   var base = new URL('.', location.href).href, src = base + 'yeogikok.js';
   // no spaces anywhere in this code: 삼성 인터넷 refuses to save a bookmark whose address has a space ("URL에는 공백을 포함할 수 없습니다")
   var bm = "javascript:(function(d,s){if(window.__ykLoaded){window.dispatchEvent(new(Event)('yk-open'));return}s=d.createElement('script');s.src='" + src + "?t='+Date.now();s.setAttribute('data-open','1');d.documentElement.appendChild(s)})(document)";
-  var line = '<script src="' + src + '" integrity="sha384-ewlEslQJsGf1r8FQW1r30Jb7uktR2sgID2KhD+/oDbBQvEQ5Nz3by/bJ1HiLk3dC" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
+  var line = '<script src="' + src + '" integrity="sha384-HfpnwQboe9MrbF/lSsDgWHCt6xwGGMM3gR9GXfsukXFYotYOYzfyKxFubtLo0q0A" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
   document.getElementById('bm').href = bm;
   document.getElementById('bm').addEventListener('click', function (e) { e.preventDefault(); });
   document.getElementById('line').textContent = line;
