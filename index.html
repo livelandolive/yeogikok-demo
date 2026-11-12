@@ -38,7 +38,7 @@
 <body>
 <main>
   <header>
-    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.5.8 · 2026-11-12</small></h1>
+    <h1>여기콕 도움 버튼 <small>팀 시안 · 0.6.0 · 2026-11-12</small></h1>
     <p>병원 예약 화면 위에 “지금 이걸 누르세요”를 한 단계씩 알려주는 버튼이에요. 병원이 코드 한 줄을 넣으면 뜨는 것을, 병원이 넣기 전에 우리끼리 미리 써 보는 페이지예요.</p>
   </header>
 
@@ -60,11 +60,14 @@
     <details open>
       <summary>아이폰 (사파리)</summary>
       <ol>
-        <li>위 <b>① 켜는 코드 복사</b>를 누르세요.</li>
-        <li>아래 공유 버튼(네모에 화살표) → <b>책갈피 추가</b> → 이름을 <b>여기콕</b>으로 하고 저장.</li>
-        <li>책갈피 목록(책 모양) → <b>편집</b> → 여기콕 → 주소 칸을 모두 지우고 <b>붙여넣기</b> → 완료.</li>
-        <li>병원 사이트를 열고, 책갈피 목록에서 <b>여기콕</b>을 누르세요.</li>
+        <li><b>처음 한 번만:</b> 아이폰 <b>설정 → 앱 → Safari → 탭</b>에서 <b>하단</b>을 고르세요. 그래야 사파리 아래에 책 모양(북마크) 버튼이 보여요.</li>
+        <li>이 페이지에서 위 <b>① 켜는 코드 복사</b>를 누르세요.</li>
+        <li>아래 <b>공유 버튼</b>(네모에 화살표) → <b>북마크에 추가</b> → 오른쪽 위 <b>저장</b>.</li>
+        <li>아래 <b>책 모양</b> → 방금 만든 <b>여기콕 시안</b>을 <b>꾹 누르고 → 편집</b>.</li>
+        <li>주소(https://…)를 <b>모두 지우고</b>, 빈 칸을 꾹 눌러 <b>붙여넣기</b> → <b>저장</b>.</li>
+        <li>병원 사이트를 열고, <b>책 모양 → 여기콕 시안</b>을 누르세요.</li>
       </ol>
+      <p class="muted">로그인처럼 화면이 통째로 바뀌면 도움 버튼이 사라져요. 그때마다 책 모양 → 여기콕 시안을 한 번 더 누르세요.</p>
     </details>
     <details>
       <summary>갤럭시·안드로이드 (크롬)</summary>
@@ -74,7 +77,7 @@
         <li>이름을 <b>여기콕</b>으로, 주소(URL) 칸은 모두 지우고 <b>붙여넣기</b> → 저장.</li>
         <li>병원 사이트를 열고, 주소창에 <b>여기콕</b>이라고 쓰면 아래에 ☆ 여기콕이 나와요. 그걸 누르세요.</li>
       </ol>
-      <p class="muted">크롬은 북마크 목록에서 바로 누르면 안 켜져요. 꼭 주소창에 이름을 써서 눌러야 해요.</p>
+      <p class="muted">크롬은 북마크 목록에서 바로 누르면 안 켜져요. 꼭 주소창에 이름을 써서 눌러야 해요. (갤럭시는 아직 실제 기기로 확인하지 못했어요.)</p>
     </details>
   </section>
 
@@ -102,14 +105,14 @@
     <p style="margin: 0">병원 홈페이지의 공통 틀(모든 화면에 들어가는 부분)에서 <code>&lt;/body&gt;</code> 바로 앞에 넣어요.</p>
     <pre id="line"></pre>
     <p style="margin: 0"><button class="copy" type="button" data-copy="line">코드 복사</button><span class="ok" hidden>복사했어요</span></p>
-    <p class="muted">파일 하나(128KB)만 불러와요. <code>integrity</code> 값은 “우리가 확인한 그 파일이 맞는지”를 브라우저가 검사하게 해요. 빼려면 이 한 줄만 지우면 돼요.</p>
+    <p class="muted">파일 하나(131KB)만 불러와요. <code>integrity</code> 값은 “우리가 확인한 그 파일이 맞는지”를 브라우저가 검사하게 해요. 빼려면 이 한 줄만 지우면 돼요.</p>
   </section>
 </main>
 <script>
   // this page works wherever it is put: it reads its own address and builds the links from it
   var base = new URL('.', location.href).href, src = base + 'yeogikok.js';
   var bm = "javascript:(function(){if(window.__ykLoaded){window.dispatchEvent(new Event('yk-open'));return;}var s=document.createElement('script');s.src='" + src + "?t='+Date.now();s.setAttribute('data-open','1');document.documentElement.appendChild(s);})()";
-  var line = '<script src="' + src + '" integrity="sha384-oVXYUFX50veuuPcAgrIT7+5MYkEo+N671LlKcYXnz57U1zvpSwkR8kN/AAAT8jFS" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
+  var line = '<script src="' + src + '" integrity="sha384-ldb4YzloCp65W75D40h3xmsn3xmLr8E4Qenh4Yda4gsVckKs0A4b1fJhh7sr8Lh8" crossorigin="anonymous" data-hospital="anam" defer><\/script>';
   document.getElementById('bm').href = bm;
   document.getElementById('bm').addEventListener('click', function (e) { e.preventDefault(); });
   document.getElementById('line').textContent = line;

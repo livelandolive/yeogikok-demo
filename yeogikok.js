@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.5.8 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.0 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -330,12 +330,13 @@
             find: [{ fn: qnaNext }],
             msg: '질문을 읽고 맞으면 ‘예’, 아니면 ‘아니오’를 누르세요.', sub: '질문이 여러 개면 하나씩 답해요. 모두 ‘예’면 다음 창으로 넘어가요. 잘 모르겠으면 ‘전화로’를 눌러 물어보세요.', fill: false },
           // 증상 창: 여기 '예약하기'를 눌러야 예약이 잡혀요
-          { st: '증상', when: (h) => h.shown('#reservationMsg') && !h.filled('reservationMsg'),
+          // 다 쓴 것으로 보는 때: 칸을 벗어났거나, 휴대폰에서 키보드를 내렸거나, 3초 동안 더 쓰지 않았을 때
+          { st: '증상', when: (h) => h.shown('#reservationMsg') && !(h.filled('reservationMsg') || h.settled('reservationMsg', 3000)),
             find: [{ sel: '#reservationMsg' }],
-            msg: '어디가 어떻게 아픈지 짧게 쓰세요.', sub: '30자까지 써요. 예: 오른쪽 무릎이 아파서 걷기 힘들어요' },
+            msg: '어디가 어떻게 아픈지 짧게 쓰세요.', sub: '30자까지 써요. 예: 오른쪽 무릎이 아파서 걷기 힘들어요. 다 쓰고 잠깐 기다리면 다음 할 일을 알려드려요.' },
           { st: '마지막 예약하기', when: (h) => h.shown(RMSG),
             find: [{ sel: RMSG + ' a[title="예약하기"]' }, { sel: RMSG + ' a.btn_main', text: '예약하기' }],
-            msg: '마지막으로 이 창의 ‘예약하기’를 누르세요.', sub: '이걸 누르면 예약이 잡혀요. 고른 진료과·선생님·날짜·시간은 오른쪽(휴대폰은 위)에 적혀 있어요. 바꾸려면 ‘취소’를 눌러요.', fill: false },
+            msg: '마지막이에요. 이 ‘예약하기’를 누르면 진짜로 예약이 잡혀요.', sub: '고른 진료과·선생님·날짜·시간이 맞는지 한 번 더 보세요. 바꾸고 싶으면 ‘취소’를 눌러요. 증상을 고치려면 글 칸을 다시 누르면 돼요.', fill: false },
           // STEP01 진료과
           { st: '진료과 고르기', when: () => !!openTitle(1),
             find: [{ fn: () => openBox(1) }],
@@ -579,12 +580,18 @@ window.__YK_RULES = {
   const inMenu = (el) => !!el.closest(MENU);
   const SKIP = (el) => inMenu(el) || /search|totalsearch|keyword|srch/i.test((el.id || '') + ' ' + (el.name || ''));
   const FILLABLE = 'input:not([type]), input[type="text"], input[type="tel"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], textarea, select';
+  let lastInputAt = 0, baseH = innerHeight;
+  document.addEventListener('input', () => { lastInputAt = Date.now(); }, true);
+  const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  const typingOver = () => { const v = window.visualViewport; baseH = Math.max(baseH, innerHeight);
+    return TOUCH && !!v && !(v.height * v.scale < baseH - 100) && Date.now() - lastInputAt > 1200; };
   const isEmpty = (el) => {
     if (el.tagName === 'SELECT') return el.selectedIndex <= 0 && placeholderOption(el);
     const v = String(el.value || '').trim();
     if (!v) return true;
     // still typing counts as not done, unless a fixed-length box is already full (주민번호 앞 6자리)
-    return el === document.activeElement && !(el.maxLength > 0 && v.length >= el.maxLength);
+    // or, on a phone, the keyboard has been put away (the cursor stays in the box, but the person has stopped typing)
+    return el === document.activeElement && !(el.maxLength > 0 && v.length >= el.maxLength) && !typingOver();
   };
   // the first choice of a list is a "please choose" line, not a real answer
   const placeholderOption = (sel) => { const o = sel.options && sel.options[0]; return !o || !o.value || /선택|--|::|choose|select/i.test(o.textContent || ''); };
@@ -1200,6 +1207,15 @@ window.__YK_RULES = {
     try { const f = flags(), a = answers(); h.group.forEach((g) => { delete f[g]; delete a[g]; });
       sessionStorage.setItem(FLAGS, JSON.stringify(f)); sessionStorage.setItem(ANSWERS, JSON.stringify(a)); } catch (e) {}
   }
+  // when something was last typed anywhere on the page
+  let lastInputAt = 0;
+  document.addEventListener('input', () => { lastInputAt = Date.now(); }, true);
+  // a phone: the on-screen keyboard takes part of the screen while someone is typing
+  const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  let baseH = innerHeight;
+  const keyboardOpen = () => { const v = window.visualViewport; baseH = Math.max(baseH, innerHeight); return !!v && v.height * v.scale < baseH - 100; };
+  // on a phone the cursor stays in the box after the keyboard is put away: that is "done typing", not "still typing"
+  const typingOver = () => TOUCH && !keyboardOpen() && Date.now() - lastInputAt > 1200;
   const H = {
     val: (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; },
     // a field counts as done only after the person has left it (still typing "홍" of "홍길동" is not done)
@@ -1207,8 +1223,10 @@ window.__YK_RULES = {
       const el = document.getElementById(id); if (!el) return false;
       const v = String(el.value || '').trim(); if (!v) return false;
       // a fixed-length box that is full counts as done even while the cursor is still in it (010, 주민번호 앞 6자리)
-      return el !== document.activeElement || (el.maxLength > 0 && v.length >= el.maxLength);
+      return el !== document.activeElement || (el.maxLength > 0 && v.length >= el.maxLength) || typingOver();
     },
+    // something is written in the box and nothing has been typed for a while (free text with no fixed length)
+    settled: (id, ms) => { const el = document.getElementById(id); return !!el && !!String(el.value || '').trim() && Date.now() - lastInputAt >= (ms || 3000); },
     checked: (id) => { const el = document.getElementById(id); return !!(el && el.checked); },
     flag: (k) => !!flags()[k],
     shown: (sel) => { try { return [...document.querySelectorAll(sel)].some(seen); } catch (e) { return false; } },
@@ -1350,7 +1368,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.5.8');
+  host.setAttribute('data-yk-version', '0.6.0');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
@@ -1360,6 +1378,7 @@ window.__YK_RULES = {
     .ring { position: fixed; border-radius: 8px; outline: 4px solid #f6c21c; outline-offset: 3px;
       box-shadow: 0 0 0 9999px rgba(18, 26, 44, .38); pointer-events: none; }
     .ring.nodim { box-shadow: none; }
+    .ui { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; transform: translate(0px, 0px) scale(1); pointer-events: none; }
     .ring { transition: opacity .25s ease; }
     .ring.away { opacity: 0; }
     .where { position: fixed; left: 50%; transform: translateX(-50%); pointer-events: auto; min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px;
@@ -1401,13 +1420,15 @@ window.__YK_RULES = {
     :focus-visible { outline: 3px solid #4c7dff; outline-offset: 2px; }
   </style>
   <div class="ring" hidden></div>
+  <div class="ui">
   <button class="fab" type="button" aria-label="도움 안내 켜기"><span class="q">?</span>도움</button>
   <div class="strip" hidden role="dialog" aria-live="polite"></div>
   <div class="exit" hidden role="dialog"></div>
   <button class="nudge" type="button" hidden></button>
-  <button class="where" type="button" hidden data-g="goto"></button>`;
+  <button class="where" type="button" hidden data-g="goto"></button>
+  </div>`;
   document.documentElement.appendChild(host);
-  const ring = $('.ring', root), fab = $('.fab', root), strip = $('.strip', root), exitBox = $('.exit', root), nudge = $('.nudge', root), where = $('.where', root);
+  const ring = $('.ring', root), fab = $('.fab', root), strip = $('.strip', root), exitBox = $('.exit', root), nudge = $('.nudge', root), where = $('.where', root), ui = $('.ui', root);
 
   let on = false, more = false, exitOpen = false, lastKey = '', target = null;
   let lastGood = Date.now(), lastHref = location.href;
@@ -1448,11 +1469,31 @@ window.__YK_RULES = {
     const r = pinnedAt(innerHeight - 4);
     return r && r.bottom >= innerHeight - 4 ? r.height : 0;
   }
+  // A phone zooms the page when a box is tapped (and people pinch to zoom). The page grows, but our guide must not:
+  // keep our layer exactly over the part of the page that is on screen, at its normal size.
+  // (2026-11-12 아이폰 실사용 영상: 칸을 누르면 화면이 확대되면서 안내 창이 커져 잘리고, 노란 테두리가 다른 곳에 그려졌어요)
+  let zoomed = false;
+  function fitUi() {
+    const v = window.visualViewport;
+    const sc = v ? v.scale : 1, ox = v ? v.offsetLeft : 0, oy = v ? v.offsetTop : 0;
+    ui.style.width = (v ? v.width * sc : innerWidth) + 'px';
+    ui.style.height = (v ? v.height * sc : innerHeight) + 'px';
+    ui.style.transform = 'translate(' + ox + 'px, ' + oy + 'px) scale(' + (1 / sc) + ')';
+    zoomed = sc > 1.02 || oy > 2 || ox > 2;
+  }
+  // the part of the page that is on screen, in the same numbers getBoundingClientRect() gives
+  function screenBox() {
+    const v = window.visualViewport, o = host.getBoundingClientRect();
+    if (!v) return { top: 0, left: 0, bottom: innerHeight, right: innerWidth, scale: 1 };
+    return { top: o.top + v.offsetTop, left: o.left + v.offsetLeft, bottom: o.top + v.offsetTop + v.height, right: o.left + v.offsetLeft + v.width, scale: v.scale };
+  }
   function placeChrome() {
-    fab.style.bottom = (bottomBarHeight() + 14) + 'px';
-    nudge.style.bottom = (bottomBarHeight() + 18) + 'px';
-    nudge.style.right = (fab.getBoundingClientRect().width + 28) + 'px';
-    strip.style.top = headerBottom() + 'px';
+    fitUi();
+    const bar = zoomed ? 0 : bottomBarHeight();
+    fab.style.bottom = (bar + 14) + 'px';
+    nudge.style.bottom = (bar + 18) + 'px';
+    nudge.style.right = (fab.offsetWidth + 28) + 'px';
+    strip.style.top = (zoomed ? 8 : headerBottom()) + 'px';
   }
   // where the place we point at went when it is not on screen: 'up' | 'down' | '' (it is on screen)
   function awayDir(el) {
@@ -1464,15 +1505,17 @@ window.__YK_RULES = {
       if (cy < ar.top) return 'up';
       if (cy > ar.bottom || cx < ar.left || cx > ar.right) return 'down';
     }
-    if (r.bottom < 40) return 'up';
-    if (r.top > innerHeight - 40) return 'down';
+    const b = screenBox(), m = 40 / b.scale;
+    if (r.bottom < b.top + m) return 'up';
+    if (r.top > b.bottom - m) return 'down';
     return '';
   }
   function placeRing() {
     if (!on || exitOpen || !target || !target.isConnected || !seen(target)) { ring.hidden = true; where.hidden = true; return; }
     const r = target.getBoundingClientRect();
     ring.hidden = false;
-    ring.style.top = r.top + 'px'; ring.style.left = r.left + 'px';
+    const o = host.getBoundingClientRect();
+    ring.style.top = (r.top - o.top) + 'px'; ring.style.left = (r.left - o.left) + 'px';
     ring.style.width = r.width + 'px'; ring.style.height = r.height + 'px';
     // scrolled away (the page, or the inside of a pop-up window): the dark cover fades out instead of flipping,
     // and a small button says which way the place is and brings it back when pressed
@@ -1481,8 +1524,8 @@ window.__YK_RULES = {
     where.hidden = !dir;
     if (dir) {
       where.textContent = dir === 'up' ? '↑ 누를 곳이 위에 있어요' : '↓ 누를 곳이 아래에 있어요';
-      where.style.top = dir === 'up' ? (strip.getBoundingClientRect().bottom + 10) + 'px' : '';
-      where.style.bottom = dir === 'up' ? '' : (bottomBarHeight() + 16) + 'px';
+      where.style.top = dir === 'up' ? (strip.offsetTop + strip.offsetHeight + 10) + 'px' : '';
+      where.style.bottom = dir === 'up' ? '' : ((zoomed ? 0 : bottomBarHeight()) + 16) + 'px';
     }
   }
   // bring the target into the free area under the strip (only when the step changes)
@@ -1495,6 +1538,7 @@ window.__YK_RULES = {
     // the target is inside a box that scrolls on its own (a list, an app-like page): scroll that box
     // (also a pop-up window whose lower half scrolls: bring the box we point at into that window's view)
     if (!seen(target) || outOfScroller(target)) { try { target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} return; }
+    if (zoomed) { if (awayDir(target)) { try { target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} } return; }
     const top = strip.getBoundingClientRect().bottom + 10;
     const bottom = innerHeight - bottomBarHeight() - 10;
     const r = target.getBoundingClientRect();
@@ -1648,7 +1692,7 @@ window.__YK_RULES = {
   let rt = 0;
   const onResize = () => { follow(); clearTimeout(rt); rt = setTimeout(() => { if (on && !exitOpen) scrollToTarget(); }, 250); };
   addEventListener('resize', onResize);
-  if (window.visualViewport) visualViewport.addEventListener('resize', onResize);
+  if (window.visualViewport) { visualViewport.addEventListener('resize', onResize); visualViewport.addEventListener('scroll', follow); }
 
   // some hospital pages move by animation instead of scrolling (no scroll events):
   // keep the ring on its target every frame so it never drifts away from the button
