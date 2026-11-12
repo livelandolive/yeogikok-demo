@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.4 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.5 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -37,8 +37,37 @@
   // 그래서 컴퓨터에서는 "올려 두세요", 휴대폰에서는 "누르세요"라고 말해요.
   const HOVER = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
 
+  // 첫 화면의 첫방문 칸에서 ‘예약신청’을 누르면 뜨는 확인 창 (동의 → 간편예약 신청). 이름·번호를 넣는 창(QUICK)과는 다른 창이에요.
+  // (2026-11-12 팀원 시험: 이 창이 안내표에 없어서 첫방문 흐름이 중간에 끊겼어요)
+  const CONFIRM = '.modal_outer:not(#simplReservationInputModal) .modal_wrap.modal-first';
+  const confirmSteps = [
+    { st: '첫방문 확인 창: 동의', when: (h) => h.shown(CONFIRM) && !h.checked('modal-user-authAgree-Y'),
+      find: [{ sel: CONFIRM + ' label[for="modal-user-authAgree-Y"]' }],
+      msg: '‘동의합니다’를 누르세요.', sub: '병원이 전화로 예약을 도와드리려고 이름과 휴대폰 번호를 받아요. 3년 뒤 지워져요.', fill: false },
+    { st: '첫방문 확인 창: 신청', when: (h) => h.shown(CONFIRM),
+      find: [{ sel: CONFIRM + ' a[title="확인"]' }, { sel: CONFIRM + ' a', text: '간편예약 신청' }],
+      msg: '‘간편예약 신청’을 누르세요.', sub: '누르면 신청이 끝나요. ‘신청되었습니다’ 같은 알림이 뜨면 ‘확인’을 누르세요.', fill: false }
+  ];
+  // 신청을 마쳤는지: ‘간편예약 신청’을 누른 뒤 그 창이 닫혔으면 끝난 거예요 (3분 동안 기억). 그래야 다시 “성명을 넣으세요”로 돌아가지 않아요.
+  let quickSentAt = 0;
+  try { quickSentAt = +sessionStorage.getItem('yk-anam-quicksent') || 0; } catch (e) {}
+  document.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest && e.target.closest('.modal-first a');
+    if (!b || !/간편예약 신청/.test(txt(b))) return;
+    const m = b.closest('.modal-first');
+    const yes = m && [...m.querySelectorAll('input[type="radio"]')].find((x) => /Y$/.test(x.id));
+    if (yes && yes.checked) { quickSentAt = Date.now(); try { sessionStorage.setItem('yk-anam-quicksent', String(quickSentAt)); } catch (er) {} }
+  }, true);
+  const quickDone = () => quickSentAt && Date.now() - quickSentAt < 180000 && Date.now() - quickSentAt > 1500 && !$$('.modal-first').some((m) => m.getClientRects().length > 0);
+  const doneSteps = [
+    { st: '간편예약 신청 끝', when: () => quickDone(),
+      find: [{ sel: 'div.box.box01 > a.title' }, { sel: 'a[href*="quickReservationInput"]' }, { sel: 'h1, h2, .logo' }],
+      msg: '간편예약 신청이 끝났어요. 이제 병원 전화를 기다리세요.', sub: '상담원이 평일 오전 8시~오후 5시(토요일 오전 8시 30분~12시 30분)에 전화해서 날짜를 잡아드려요. 모르는 번호여도 받아 주세요. 더 누를 것은 없어요.', fill: false }
+  ];
+
   // 첫방문 간편예약 창 (메인·로그인·진료예약 안내 화면 어디서나 열려요)
   const quickSteps = [
+    ...confirmSteps, ...doneSteps,
     { st: '간편예약: 동의 전', when: (h) => h.shown(QUICK) && !agreed(QUICK),
       find: [{ fn: () => agreeLabel(QUICK) }, { sel: 'label[for="modal-user-authAgree-input-Y"]' }],
       msg: '‘동의합니다’를 누르세요.', sub: '병원이 전화로 예약을 도와드리려고 이름과 휴대폰 번호를 받아요. 3년 뒤 지워져요.' },
@@ -93,6 +122,11 @@
   const noDoctor = () => { const b = openBox(2); return !!b && [...b.querySelectorAll('.nodata, p, div')].some((e) => onScreen(e) && /예약 가능한 의료진이 없습니다/.test(txt(e)) && e.children.length < 3); };
   const dayPicked = () => !!document.querySelector('#calendar td.select');
   const hasOpenDay = () => !!document.querySelector('#calendar td.pos');
+  // 예약할 수 있는 날이 없는 달을 몇 번 봤는지 세요 (선생님이 바뀌면 처음부터). 두 달째도 없으면 전화를 권해요.
+  // (2026-11-12 팀원 시험: 달력이 꽉 차 있으면 다음 달만 계속 넘기게 돼요)
+  const emptyMonths = {};
+  const countEmptyMonth = () => { const d = txt(document.querySelector('.reservation_stepouter .steptitle.step2title')); const m = txt(document.querySelector('.month_select strong'));
+    (emptyMonths[d] = emptyMonths[d] || new Set()).add(m); return emptyMonths[d].size; };
   const timePicked = () => !!document.querySelector('.select_time li.select');
   // 사전문진: 아직 답하지 않은 첫 질문 (질문마다 '예'·'아니오' 둘 중 하나)
   const qnaNext = () => {
@@ -379,6 +413,10 @@
           { st: '달력 불러오는 중', when: () => !!openTitle(3) && !dayPicked() && !hasOpenDay() && !stable(dayKey(), true),
             find: [{ sel: '#calendar' }],
             msg: '달력을 불러오고 있어요. 잠시만 기다리세요.', sub: '몇 초 걸려요. 아무것도 누르지 않아도 돼요.', fill: false },
+          { st: '계속 빈 날 없음', when: () => !!openTitle(3) && !dayPicked() && stable(dayKey(), !hasOpenDay()) && countEmptyMonth() >= 2,
+            find: [{ sel: '#calendar' }],
+            msg: '다음 달에도 예약할 수 있는 날이 없어요. 병원에 전화로 물어보세요.',
+            sub: '아래 ‘📞 전화로’를 누르면 예약센터 번호(1577-0083)가 나와요. 전화하면 더 빠른 날짜나 다른 선생님을 안내받을 수 있어요. 다른 선생님으로 직접 바꾸려면 화면을 위로 올려 ‘STEP02’를 누르세요.', fill: false },
           { st: '이번 달 빈 날 없음', when: () => !!openTitle(3) && !dayPicked() && stable(dayKey(), !hasOpenDay()),
             find: [{ sel: '.month_select a.month_next' }],
             msg: '이번 달은 예약할 수 있는 날이 없어요. 달력 위 ‘>’를 눌러 다음 달을 보세요.', sub: '다른 선생님으로 바꾸려면 화면을 위로 올려 ‘STEP02’를 누르세요. 다음 달에도 없으면 ‘전화로’를 눌러 물어보세요.', fill: false },
@@ -1445,7 +1483,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.4');
+  host.setAttribute('data-yk-version', '0.6.5');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
