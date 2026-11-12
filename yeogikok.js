@@ -1,4 +1,4 @@
-/*! 여기콕 도움 버튼 0.6.0 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
+/*! 여기콕 도움 버튼 0.6.1 (2026-11-12) — 병원 예약 화면 위에 어르신용 안내 버튼을 띄워요.
  * 넣는 법: <script src="…/yeogikok.js" data-hospital="anam" defer></script>
  * 병원 화면과 입력 내용은 바꾸지도, 저장하지도, 어디로 보내지도 않아요. 빼려면 이 한 줄만 지우면 돼요. */
 (function () {
@@ -101,6 +101,16 @@
     const y = n && document.getElementById(n + '_Y');
     return y && (y.closest('.textabox') || y.closest('.agree_line'));
   };
+  // 선생님을 고르는 곳의 모양: 컴퓨터는 이름 왼쪽의 작은 동그라미, 휴대폰은 선생님마다 아래에 있는 넓은 ‘선택’ 막대
+  // (2026-11-12 아이폰 실사용 영상으로 확인). 화면에 실제로 그려진 모양을 보고 말을 골라요.
+  const pickIsBar = () => {
+    const box = openBox(2) || document.querySelector('.reservation_stepouter .gui_wrap');
+    const l = box && [...box.querySelectorAll('.agree_line label, label[for^="Select_Doc"]')].find(onScreen);
+    if (l) return l.getBoundingClientRect().width >= 100;
+    return !HOVER; // 못 찾으면 기기로 짐작해요
+  };
+  const pickMsg = () => pickIsBar() ? '진료받을 선생님 칸의 ‘선택’을 누르세요.' : '선생님 이름 왼쪽의 동그라미를 누르세요.';
+  const pickSub = () => (pickIsBar() ? '선생님마다 아래에 ‘선택’ 막대가 있어요. ' : '이름이나 사진을 눌러서는 골라지지 않아요. ') + '맨 위 선생님이 가장 빨리 볼 수 있어요(‘빠른진료’ 날짜). ‘전문진료분야’에 아픈 곳이 적힌 분이면 더 좋아요.';
   // 의료진 예약 탭: 이름 검색
   const docSearch = () => $$('.search_doc input').find(onScreen);
   const docListed = () => $$('.reservation_stepouter li.nbdt').some(onScreen);
@@ -350,7 +360,7 @@
             msg: '‘검색’을 누르세요.', sub: '‘검색된 의료진이 없습니다’가 나오면 이름을 다시 보세요.', fill: false },
           { st: '의료진 고르기(검색)', when: () => !openTitle(3) && docListed(),
             find: [{ fn: () => { const li = $$('.reservation_stepouter li.nbdt').find(onScreen); return li && li.parentElement; } }],
-            msg: '찾는 선생님 이름 왼쪽의 동그라미를 누르세요.', sub: '이름이나 사진을 눌러서는 골라지지 않아요.', fill: false },
+            get msg() { return pickIsBar() ? '찾는 선생님 칸의 ‘선택’을 누르세요.' : '찾는 선생님 이름 왼쪽의 동그라미를 누르세요.'; }, sub: '이름이나 사진을 눌러서는 골라지지 않아요.', fill: false },
           // STEP02 의료진
           { st: '의료진 불러오는 중', when: () => !!openTitle(2) && noDoctor() && !stable(docKey(), true),
             find: [{ fn: () => openBox(2) }],
@@ -360,14 +370,14 @@
             msg: '이 과는 인터넷으로 예약할 수 있는 선생님이 없어요.', sub: '위의 ‘STEP01’을 눌러 다른 과를 고르거나, ‘전화로’를 눌러 1577-0083으로 예약하세요.', fill: false },
           { st: '의료진 고르기', when: () => { stable(docKey(), false); return !!openTitle(2); },
             find: [{ fn: () => openBox(2) }],
-            msg: '선생님 이름 왼쪽의 동그라미를 누르세요.', sub: '이름이나 사진을 눌러서는 골라지지 않아요. 맨 위 선생님이 가장 빨리 볼 수 있어요(‘빠른진료’ 날짜). ‘전문진료분야’에 아픈 곳이 적힌 분이면 더 좋아요.', fill: false },
+            get msg() { return pickMsg(); }, get sub() { return pickSub(); }, fill: false },
           // STEP03 날짜 → 시간 → 예약하기
           { st: '달력 불러오는 중', when: () => !!openTitle(3) && !dayPicked() && !hasOpenDay() && !stable(dayKey(), true),
             find: [{ sel: '#calendar' }],
             msg: '달력을 불러오고 있어요. 잠시만 기다리세요.', sub: '몇 초 걸려요. 아무것도 누르지 않아도 돼요.', fill: false },
           { st: '이번 달 빈 날 없음', when: () => !!openTitle(3) && !dayPicked() && stable(dayKey(), !hasOpenDay()),
             find: [{ sel: '.month_select a.month_next' }],
-            msg: '이번 달은 예약할 수 있는 날이 없어요. 달력 위 ‘>’를 눌러 다음 달을 보세요.', sub: '다음 달에도 없으면 ‘전화로’를 눌러 물어보세요.', fill: false },
+            msg: '이번 달은 예약할 수 있는 날이 없어요. 달력 위 ‘>’를 눌러 다음 달을 보세요.', sub: '다른 선생님으로 바꾸려면 화면을 위로 올려 ‘STEP02’를 누르세요. 다음 달에도 없으면 ‘전화로’를 눌러 물어보세요.', fill: false },
           { st: '날짜 고르기', when: () => { stable(dayKey(), false); return !!openTitle(3) && !dayPicked(); },
             find: [{ sel: '#calendar' }],
             msg: '연한 주황색으로 칠해진 날짜를 누르세요.', sub: '그 날이 예약할 수 있는 날이에요(달력 아래 ‘예약가능’). 빨간 테두리는 오늘이에요. 다른 달은 달력 위 ‘<’ ‘>’를 눌러요.', fill: false },
@@ -1368,7 +1378,7 @@ window.__YK_RULES = {
   /* ---------- our layer (shadow DOM, so the hospital's styles never mix with ours) ---------- */
   const host = document.createElement('div');
   host.id = 'yk-help-root';
-  host.setAttribute('data-yk-version', '0.6.0');
+  host.setAttribute('data-yk-version', '0.6.1');
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
@@ -1529,8 +1539,18 @@ window.__YK_RULES = {
     }
   }
   // bring the target into the free area under the strip (only when the step changes)
+  // The person moves the page themself (finger, wheel, arrow keys): from then on we do not move it for them.
+  // We only say which way the place is ("↓ 누를 곳이 아래에 있어요"). Pressing something on the page lets us lead again.
+  // (2026-11-12 아이폰 실사용: 위로 올리려고 해도 짚는 곳으로 자꾸 다시 내려갔어요)
+  let lastUserScrollAt = 0, lastAutoTarget = null;
+  const userMoved = () => { lastUserScrollAt = Date.now(); };
+  ['touchmove', 'wheel'].forEach((t) => document.addEventListener(t, userMoved, { passive: true, capture: true }));
+  document.addEventListener('keydown', (e) => { if (/^(Arrow|Page|Home|End| $)/.test(e.key)) userMoved(); }, true);
+  document.addEventListener('click', (e) => { if (!(e.composedPath && e.composedPath().includes(host))) lastUserScrollAt = 0; }, true);
   function scrollToTarget() {
     if (!target) return;
+    if (Date.now() - lastUserScrollAt < 6000) return;
+    lastAutoTarget = target;
     // never move the page while the person is typing in a field
     // (a tick box or a choice button that was just pressed is not typing: those may scroll on to the next step)
     const a = document.activeElement;
@@ -1609,7 +1629,8 @@ window.__YK_RULES = {
     }
     strip.hidden = false;
     placeRing();
-    if (stepChanged) setTimeout(scrollToTarget, 30);
+    // move the page only when we start pointing at a different place (not when only the wording changes)
+    if (stepChanged && target !== lastAutoTarget) setTimeout(scrollToTarget, 30);
   }
   function openExit() {
     exitOpen = true;
@@ -1679,7 +1700,7 @@ window.__YK_RULES = {
       saveAnswer(b.dataset.flag, b.dataset.was || b.textContent, group); lastKey = ''; return draw(true);
     }
     if (g === 'reask') { forgetAnswer(); lastKey = ''; return draw(true); }
-    if (g === 'goto') { try { target && target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) {} return; }
+    if (g === 'goto') { lastUserScrollAt = 0; try { target && target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) {} return; }
   });
 
   // follow what the person does on the page
@@ -1690,7 +1711,8 @@ window.__YK_RULES = {
   addEventListener('scroll', follow, { passive: true, capture: true });
   // a size change (turning the phone, the keyboard opening) can push the target out of view
   let rt = 0;
-  const onResize = () => { follow(); clearTimeout(rt); rt = setTimeout(() => { if (on && !exitOpen) scrollToTarget(); }, 250); };
+  // (on a phone the screen size changes every time the browser's bars slide in and out while scrolling: only redraw, never move the page)
+  const onResize = () => { follow(); clearTimeout(rt); rt = setTimeout(() => { if (on && !exitOpen) draw(false); }, 250); };
   addEventListener('resize', onResize);
   if (window.visualViewport) { visualViewport.addEventListener('resize', onResize); visualViewport.addEventListener('scroll', follow); }
 
